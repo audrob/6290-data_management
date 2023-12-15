@@ -1,0 +1,386 @@
+---
+title: "Social Determinants of Health Data Analysis"
+author: "Audrey Robertson"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+# import needed libs
+## rmd
+library(knitr);library(tinytex);library(yaml)
+## data management
+library(dplyr);library(tidyr)
+## import
+library(sqldf)
+## plotting
+library(ggplot2);library(gcookbook)
+
+# set working directory
+setwd("C:/Users/arobe/OneDrive/Desktop/Robertson_6290_Project")
+
+#set figure sizes
+opts_template$set(figure1 = list(fig.height = 4, fig.width = 7),
+                  figure2 = list(fig.height = 5, fig.width = 5),
+                  figure3 = list(fig.height = 5, fig.width = 7),
+                  figure4 = list(fig.height = 4, fig.width = 7),
+                  figure5 = list(fig.height = 4, fig.width = 7),
+                  figure6 = list(fig.height = 4, fig.width = 4),
+                  figure7 = list(fig.height = 4, fig.width = 5),
+                  figure8 = list(fig.height = 4, fig.width = 4),
+                  figure9 = list(fig.height = 4, fig.width = 5),
+                  figure10= list(fig.height = 4, fig.width = 4),
+                  figure11= list(fig.height = 4, fig.width = 5)) 
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+
+
+## The Relationship between Social Determinants of Health and Age-Adjusted Diabetes Rate in Orleans Parish, 2014-2018
+
+### Introduction
+Orleans Parish, Louisiana, has been identified as an area with a high prevalence of diabetes, with a mortality rate ranking fifth-highest in the nation (Louisiana Department of Health). The social determinants of health (SDoH), such as socioeconomic status, physical environment, employment, health behaviors, as well as access to healthcare, significantly influence the health outcomes related to diabetes as well as diabetes itself. Studies have shown that these factors can lead to disparities in health outcomes (Louisiana Department of Health). In Orleans Parish, there is a need to examine how these social determinants affect the diabetes rate and to identify interventions that can mitigate these effects to improve health outcomes.
+
+
+### Purpose
+This analysis will better identify the associations between social determinants of health and age-adjusted diabetes rate in Orleans Parish, using data from 2014-2018.
+
+
+### Variables:
+
+#### ID Variable:
+
+-   YEAR = Year of data.
+
+#### SDoH Variables:
+
+-   ACS_PCT_PERSON_INC_BELOW99 = Percentage of population with an income to poverty ratio under 1.00
+
+-   CHR_PCT_FOOD = Percentage of population who lack adequate access to food
+
+-   CHR_PCT_SMOKING = Percentage of adults who are current smokers
+
+-   CHR_PCT_MENTAL_DISTRESS = Percentage of adults reporting 14 or more days of poor mental health per month.
+
+-   CHR_PCT_PHYS_INACTIVITY = Percentage of adults reporting no leisure-time physical activity (ages 20 and over)
+
+-   CHR_PCT_POOR_HEALTH = Percentage of adults reporting fair or poor health (age-adjusted)
+
+-   CHR_PCT_ADULT_OBESITY = Percentage of the adult population that reports a body mass index (BMI) greater than or equal to 30 kg/m2 (ages 20 and over)
+
+#### Designated Health Outcome variable:
+
+-   CHR_PCT_D = Age-Adjusted Diabetes Percent/Rate
+
+## Data:
+
+```{r input, include=TRUE}
+# import all data files and select Orleans Parish as well as Variables needed
+d14 <- read.csv.sql("Project_Data/SDOH_2014_COUNTY_1_0.csv", header=TRUE, 
+                    sql="select * from file where COUNTY=='Orleans Parish'")
+  d14 <- d14 %>% select(YEAR, ACS_PCT_PERSON_INC_BELOW99, CHR_PCT_FOOD, CHR_PCT_SMOKING, CHR_PCT_MENTAL_DISTRESS, CHR_PCT_PHYS_INACTIVITY,  CHR_PCT_POOR_HEALTH, CHR_PCT_ADULT_OBESITY)
+
+d15 <- read.csv.sql("Project_Data/SDOH_2015_COUNTY_1_0.csv", header=TRUE, 
+                    sql="select * from  file where COUNTY=='Orleans Parish'")
+  d15 <- d15 %>% select(YEAR, ACS_PCT_PERSON_INC_BELOW99, CHR_PCT_FOOD, CHR_PCT_SMOKING, CHR_PCT_MENTAL_DISTRESS, CHR_PCT_PHYS_INACTIVITY,  CHR_PCT_POOR_HEALTH, CHR_PCT_ADULT_OBESITY)
+  
+d16 <- read.csv.sql("Project_Data/SDOH_2016_COUNTY_1_0.csv", header=TRUE,
+                    sql="select * from file where COUNTY=='Orleans Parish'")
+  d16 <- d16 %>% select(YEAR, ACS_PCT_PERSON_INC_BELOW99, CHR_PCT_FOOD, CHR_PCT_SMOKING, CHR_PCT_MENTAL_DISTRESS, CHR_PCT_PHYS_INACTIVITY,  CHR_PCT_POOR_HEALTH, CHR_PCT_ADULT_OBESITY)
+  
+  
+d17 <- read.csv.sql("Project_Data/SDOH_2017_COUNTY_1_0.csv", header=TRUE, 
+                    sql="select * from file where COUNTY=='Orleans Parish'")
+  d17 <- d17 %>% select(YEAR, ACS_PCT_PERSON_INC_BELOW99, CHR_PCT_FOOD, CHR_PCT_SMOKING, CHR_PCT_MENTAL_DISTRESS, CHR_PCT_PHYS_INACTIVITY,  CHR_PCT_POOR_HEALTH, CHR_PCT_ADULT_OBESITY)
+  
+  
+d18 <- read.csv.sql("Project_Data/SDOH_2018_COUNTY_1_1.csv", header=TRUE, 
+                    sql="select * from file where COUNTY=='Orleans Parish'")
+  d18 <- d18 %>% select(YEAR, ACS_PCT_PERSON_INC_BELOW99, CHR_PCT_FOOD, CHR_PCT_SMOKING, CHR_PCT_MENTAL_DISTRESS, CHR_PCT_POOR_HEALTH)
+  
+  
+df1 <- d14 %>% full_join(d15, by=join_by(YEAR, ACS_PCT_PERSON_INC_BELOW99, CHR_PCT_FOOD, CHR_PCT_SMOKING, CHR_PCT_MENTAL_DISTRESS, CHR_PCT_PHYS_INACTIVITY,  CHR_PCT_POOR_HEALTH, CHR_PCT_ADULT_OBESITY)) %>% full_join(d16, by=join_by(YEAR, ACS_PCT_PERSON_INC_BELOW99, CHR_PCT_FOOD, CHR_PCT_SMOKING, CHR_PCT_MENTAL_DISTRESS, CHR_PCT_PHYS_INACTIVITY,  CHR_PCT_POOR_HEALTH, CHR_PCT_ADULT_OBESITY)) %>% full_join(d17, by=join_by(YEAR, ACS_PCT_PERSON_INC_BELOW99, CHR_PCT_FOOD, CHR_PCT_SMOKING, CHR_PCT_MENTAL_DISTRESS, CHR_PCT_PHYS_INACTIVITY,  CHR_PCT_POOR_HEALTH, CHR_PCT_ADULT_OBESITY)) %>% full_join(d18, by=join_by(YEAR, ACS_PCT_PERSON_INC_BELOW99, CHR_PCT_FOOD, CHR_PCT_SMOKING, CHR_PCT_MENTAL_DISTRESS, CHR_PCT_POOR_HEALTH))
+
+# Transform data to put SDoH (Determinants) into column
+df_long <- df1 %>%
+  pivot_longer(cols = c("ACS_PCT_PERSON_INC_BELOW99", "CHR_PCT_FOOD", 
+                        "CHR_PCT_SMOKING", "CHR_PCT_MENTAL_DISTRESS", 
+                        "CHR_PCT_PHYS_INACTIVITY","CHR_PCT_POOR_HEALTH", 
+                        "CHR_PCT_ADULT_OBESITY"),
+               names_to = "Determinant",
+               values_to = "Percent")
+
+# Import outcome data 
+dd <- read.csv.sql("Project_Data/Health_Outcomes-Diabetes.csv", header=TRUE, 
+                    sql="select * from file where Area=='Orleans'")
+dd <- dd %>% select(X2014, X2015, X2016, X2017, X2018)
+colnames(dd) <- c("2014", "2015", "2016", "2017", "2018")
+
+# Transform data to put year and outcome into columns
+dd_long <- as.data.frame(dd) %>%
+  pivot_longer(cols = c("2014", "2015", "2016", "2017", "2018"),
+               names_to = "YEAR",
+               values_to = "CHR_PCT_D") %>% mutate(YEAR= as.numeric(YEAR)) %>% mutate(CHR_PCT_D= as.numeric(CHR_PCT_D))
+
+dd_long <- as.data.frame(dd_long, row.names= 
+                            c("2014", "2015", "2016", "2017", "2018"))
+
+# Create data frame with all SDoH and ouctome varibale by year
+df <- df_long %>% full_join(dd_long, by=join_by(YEAR))
+
+#remove missing data points to exclude in analysis
+df <- remove_missing(df, na.rm=T)
+write.csv(df,"Project_df.csv", row.names=T)
+
+knitr::opts_chunk$set(echo=FALSE)
+knitr::kable(df, caption= "Source: Agency for Healthcare Research and Equity,
+       Louisiana Department of Health ")
+
+```
+
+## Data Visualization
+
+Present characteristics of sample and variables.
+
+### Scatterplot of all Valid Data in the Sample:
+
+This scatterplot displays all valid data included in this analysis.
+```{r scatter, opts.label="figure1", include=TRUE}
+
+#scatter plot of all variables by year
+ggplot(data=df, mapping = aes(x = YEAR))+
+  geom_point(aes(y=CHR_PCT_D, colour="CHR_PCT_D"))+
+  geom_point(aes(y=Percent, colour=Determinant))+
+  labs(title = "SDoH and Diabetes Rate",
+       x= "Year", y="Percent of Population",
+       caption = "Sources: Agency for Healthcare Research and Equity, 
+       Lousiana Department of Health")+
+  scale_colour_discrete(name="Measure")
+
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+### Boxplot of all variables: 
+
+The boxplots show the distribution of all valid values within each variable.
+The following variables have outliers as shown below:
+
+-   CHR_PCT_FOOD
+
+-   CHR_PCT_PHYS_INACTIVITY
+
+-   CHR_PCT_ADULT_OBESITY
+
+```{r boxplotd, include=TRUE, opts.label="figure2"}
+
+# Outcome Variable (CHR_PCT_D)
+boxplot(df$CHR_PCT_D, outline=T, 
+        main="Distribution of Diabetes Rate, 2014-2018", 
+        xlab="Diabetes Rate", ylab="Percent", 
+        sub="Source: Louisiana Department of Health")
+  
+knitr::opts_chunk$set(echo=FALSE)
+```
+```{r boxsdoh, include=TRUE, opts.label="figure3"}
+
+# Determinants
+ggplot(data=df, mapping = aes(x=Determinant, y=Percent))+
+  geom_boxplot(aes(fill=Determinant),outlier.colour= 'red')+
+  labs(title = "SDoH Distribution, 2014-2018",
+       x= "Determinant", y="Percentage of Population", 
+       caption = "Source: Agency for Healthcare Research and Equity")+ 
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+  
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+
+### Distribution of Determinants by Year:
+
+It is clear that these measures overlap and may affect one another. We can see that there is missing data for CHR_PCT_ADULT_OBESITY and CHR_PCT_PHYS_INACTIVITY in 2018 that has been excluded.
+
+```{r SDoH Dist, include=TRUE, opts.label="figure4"}
+
+ggplot(data=df, mapping = aes(x=YEAR, y=Percent))+
+  geom_bar(aes(fill=Determinant),position="stack",stat="identity")+
+  labs(title = "Distribution of SDoH by Year",
+       x= "Year", y="Percent of Population",
+       caption = "Source: Agency for Healthcare Research and Equity")
+
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+### Display Trends of Determinants and Diabetes Rate:
+
+There appears to be no clear linear trend, but some variables show near-linear trend-lines.
+
+```{r trend, include=TRUE, opts.label="figure5"}
+
+ggplot(data=df, mapping = aes(x=CHR_PCT_D, y=Percent))+
+  geom_line(aes(colour=Determinant))+
+  labs(title = "Distribution of SDoH and Diabetes",
+       x= "Diabetes Age-Adjusted Rate", y="Percent of Population",
+       caption = "Source: Agency for Healthcare Research and Equity")
+
+knitr::opts_chunk$set(echo=FALSE)
+
+```
+
+These summary plots above show that there could be an interesting relationship between:
+
+-   Percent of People with a Poverty Ratio Below 1.00 and Age-Adjusted Diabetes Rate
+
+-   Percent of People with Inadequate Food Access and Age-Adjusted Diabetes Rate
+
+-   Percent of Physically Inactive Persons and Age-Adjusted Diabetes Rate
+
+### Examining the relationships between variables of interest and Diabetes Rate:
+
+#### Poverty Ratio Below 1.00
+
+In evaluating Percent of Persons with a Poverty Ratio Below 1.00 there are no outliers. 
+
+
+```{r box PR, include=TRUE, opts.label="figure6"}
+
+#filter and select data for chosen SDoH
+dfc1 <- df %>% filter(Determinant=="ACS_PCT_PERSON_INC_BELOW99") %>% select(everything())
+
+#Plot variable stats
+ggplot(data=dfc1, mapping = aes(x=Determinant, y=Percent))+
+  geom_boxplot(fill='lightblue',outlier.colour= 'red')+
+  labs(title = "Distribution, 2014-2018",
+       x= "Persons with Poverty Ratio Below 1.00", y="Percentage of Population", 
+       caption = "Source: Agency for Healthcare Research and Equity")+ 
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+
+#No outliers.
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+
+In plotting the cross of the variables, there appears to be a near-linear, positive relationship. There could be a correlation between CHR_PCT_D and ACS_PCT_PERSON_INC_BELOW99.
+
+```{r comparePR, include=TRUE, opts.label="figure7"}
+
+#plot relationship between SDoH and Diabetes
+ggplot(data=dfc1, mapping = aes(x = CHR_PCT_D, 
+                              y=Percent, colour=YEAR,
+                              size=1))+
+  geom_point()+
+  labs(title = "Percent of People with Poverty Ratio below 1.00 
+                      and Age-Adjusted Diabetes Rate",
+       x= "Percent of Percent of persons with a Poverty Ratio below 1.00",
+       y="Age-Adjusted Diabetes Rate",
+       caption = "Source: Agency for Healthcare Research and Equity,
+       Louisiana Department of Health")
+
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+
+#### Lack of Food Access
+
+In evaluating Percent of Persons with Inadequate Food Access, there is an outlier at 18 Percent. 
+
+```{r box Food, include=TRUE, opts.label="figure8"}
+
+#filter and select data for chosen SDoH
+dfc2 <- df %>% filter(Determinant=="CHR_PCT_FOOD") %>% select(everything())
+
+#plot variable stats
+ggplot(data=dfc2, mapping = aes(x=Determinant, y=Percent))+
+  geom_boxplot(fill='lightblue',outlier.colour= 'red')+
+  labs(title = "Distribution, 2014-2018",
+       x= "Persons with Inadequate Food Access", y="Percentage of Population", 
+       caption = "Source: Agency for Healthcare Research and Equity")+ 
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+
+
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+
+In plotting the cross of the variables, there appears to be a near-linear, poisitve relationship when excluding the outlier. There could be a correlation between CHR_PCT_D and CHR_PCT_FOOD, but it is important to account for the outlier.
+
+```{r compare Food, include=TRUE, opts.label="figure9"}
+
+#plot relationship between SDoH and Diabetes
+ggplot(data=dfc2, mapping = aes(x = CHR_PCT_D, 
+                              y=Percent, colour=YEAR,
+                              size=1))+
+  geom_point()+ 
+  labs(title = "Percent of People with Inadequate Food Access and Age-Adjusted Diabetes Rate",
+       x= "Age-Adjusted Diabetes Rate",
+       y= "Percent of People with Inadequate Food Access",
+       caption = "Source: Agency for Healthcare Research and Equity,
+       Louisiana Department of Health")
+
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+
+
+#### Physical Inactivity
+
+In evaluating Percent of Persons who are Physically Inactive, there is an outlier at 22 Percent. 
+
+```{r box Inactivity, include=TRUE, opts.label="figure10"}
+
+#filter and select data for chosen SDoH
+dfc3 <- df %>% filter(Determinant=="CHR_PCT_PHYS_INACTIVITY") %>% select(everything())
+
+#plot variable stats
+ggplot(data=dfc3, mapping = aes(x=Determinant, y=Percent))+
+  geom_boxplot(fill='lightblue',outlier.colour= 'red')+
+  labs(title = "Distribution, 2014-2018",
+       x= "Persons who are Physically Inactive", y="Percentage of Population", 
+       caption = "Source: Agency for Healthcare Research and Equity")+ 
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+
+In plotting the cross of the variables, there appears to be no clear linear relationship when excluding the outlier. When including the outlier, there is a near-linear association. There could be a weak correlation between CHR_PCT_D and CHR_PCT_PHYS_INACTIVITY, but it is important to account for the outlier.
+
+```{r compare Inactivity, include=TRUE, opts.label="figure11"}
+#plot relationship between SDoH and Diabetes
+ggplot(data=dfc3, mapping = aes(x = CHR_PCT_D, 
+                              y=Percent, colour=YEAR,
+                              size=1))+
+  geom_point()+ 
+  labs(title = "Percent of People Physically Inactive 
+                      and Reported Mental Distress",
+       x= "Percent of People Physically Inactive",
+       y="Age-Adjusted Diabetes Rate",
+       caption = "Source: Agency for Healthcare Research and Equity,
+       Louisiana Department of Health")
+
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+## Conclusion:
+
+Two Variables (Adult Obesity and Physical Inactivity) had missing data for the year 2018 and thus excluded from analysis.
+Three variables (Inadequate Food Access, Physical Inactivity, and Adult Obesity) had outliers. Physical Inactivy and Adult Obesity had fewer data points due to missing values which may affect it's distribution and furthermore the outliers that it has.
+
+The analysis of the selected SDoH and Outcome Variable shows that there is potential association between the individual determinants and further suggests that these Determinants could have an association with the outcome variable. Three Determinants were selected that stood out among all SDoH. These appeared to have a stronger potential near-linear correlation with Age-Adjusted Diabetes Rate. Further analysis would be needed to determine if any of these determinants could significantly predict Age-Adjusted Diabetes Rate. Outliers and confounding variables should be evaluated as well.
+
+Overall, there appears to be a relationship between SDoH and Diabetes Rate in Orleans Parish during 2014-2018. There is an interesting relationship to explore between Physical Inactivity, Food Access, Poverty Ratio; and the health outcome of Diabetes.
+
+## References
+
+### SDoH Data
+
+Social Determinants of Health Database, *Agency for Healthcare Research and         Quality*, 2014-2018, https://www.ahrq.gov/sdoh/data-analytics/sdoh-data.html
+
+
+### Diabetes Data
+  Health Data Explorer: Health Outcomes: Diabetes, *Louisiana Department of Health*, 2014-2018, https://healthdata.ldh.la.gov/
